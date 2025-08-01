@@ -1,0 +1,160 @@
+//LAYER
+mysql> desc dbOpTest_layerdetails;
++------------+--------------+------+-----+---------+----------------+
+| Field      | Type         | Null | Key | Default | Extra          |
++------------+--------------+------+-----+---------+----------------+
+| id         | bigint       | NO   | PRI | NULL    | auto_increment |
+| layer_name | varchar(100) | NO   |     | NULL    |                |
++------------+--------------+------+-----+---------+----------------+
+2 rows in set (0.01 sec)
+mysql> select * from dbOpTest_layerdetails limit 20;
++------+--------------+
+| id   | layer_name   |
++------+--------------+
+| 2735 | AADHAR_EXP   |
+| 2736 | AADHAR_SYS   |
+| 2737 | ACCOUNT_EXP  |
+| 2738 | ACCOUNT_SYS  |
+| 2739 | CUSTOMER_EXP |
+| 2740 | CUSTOMER_SYS |
+| 2741 | IVR_EXP      |
+| 2742 | IVR_SYS      |
+| 2743 | LOGGING_EXP  |
+| 2744 | LOGGING_SYS  |
+| 2745 | MISC_EXP     |
+| 2746 | MISC_SYS     |
+| 2747 | NON_GEN5     |
+| 2748 | PAYMENT_EXP  |
+| 2749 | PAYMENT_SYS  |
++------+--------------+
+
+//SERVER
+mysql> desc dbOpTest_serverdetails;
++----------+-------------+------+-----+---------+----------------+
+| Field    | Type        | Null | Key | Default | Extra          |
++----------+-------------+------+-----+---------+----------------+
+| id       | bigint      | NO   | PRI | NULL    | auto_increment |
+| serverIP | varchar(20) | NO   |     | NULL    |                |
+| layer_id | bigint      | NO   | MUL | NULL    |                |
++----------+-------------+------+-----+---------+----------------+
+3 rows in set (0.00 sec)
+
+mysql> select * from dbOpTest_serverdetails limit 20;
++-------+----------+----------+
+| id    | serverIP | layer_id |
++-------+----------+----------+
+| 24028 | 25_190   |     2735 |
+| 24029 | 25_191   |     2735 |
+| 24030 | 25_192   |     2735 |
+| 24031 | 24_190   |     2735 |
+| 24032 | 24_191   |     2735 |
+| 24033 | 24_192   |     2735 |
+| 24034 | 25_194   |     2736 |
+| 24035 | 25_195   |     2736 |
+| 24036 | 25_196   |     2736 |
+| 24037 | 25_197   |     2736 |
+| 24038 | 24_194   |     2736 |
+| 24039 | 24_195   |     2736 |
+| 24040 | 24_196   |     2736 |
+| 24041 | 24_197   |     2736 |
+| 24042 | 25_10    |     2737 |
+| 24043 | 25_11    |     2737 |
+| 24044 | 25_12    |     2737 |
+| 24045 | 25_13    |     2737 |
+| 24046 | 25_14    |     2737 |
+| 24047 | 24_10    |     2737 |
++-------+----------+----------+
+
+//BROKER
+mysql> desc dbOpTest_brokerdetails;
++--------------+--------------+------+-----+---------+----------------+
+| Field        | Type         | Null | Key | Default | Extra          |
++--------------+--------------+------+-----+---------+----------------+
+| id           | bigint       | NO   | PRI | NULL    | auto_increment |
+| udpPort      | int          | NO   |     | NULL    |                |
+| brokerName   | varchar(100) | NO   |     | NULL    |                |
+| brokerStatus | tinyint(1)   | NO   |     | NULL    |                |
+| server_id    | bigint       | NO   | MUL | NULL    |                |
++--------------+--------------+------+-----+---------+----------------+
+5 rows in set (0.00 sec)
+
+mysql> select * from dbOpTest_brokerdetails limit 20;
++---------+---------+------------+--------------+-----------+
+| id      | udpPort | brokerName | brokerStatus | server_id |
++---------+---------+------------+--------------+-----------+
+| 4793180 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793181 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793182 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793183 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793184 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793185 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793186 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793187 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793188 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793189 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793190 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793191 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793192 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793193 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793194 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793195 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793196 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793197 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793198 |    4417 | AADHAR_EXP |            1 |     24028 |
+| 4793199 |    4417 | AADHAR_EXP |            1 |     24028 |
++---------+---------+------------+--------------+-----------+
+
+//EG
+mysql> desc dbOpTest_egdetails;
++-----------+--------------+------+-----+---------+----------------+
+| Field     | Type         | Null | Key | Default | Extra          |
++-----------+--------------+------+-----+---------+----------------+
+| id        | bigint       | NO   | PRI | NULL    | auto_increment |
+| egName    | varchar(100) | NO   |     | NULL    |                |
+| egStatus  | tinyint(1)   | NO   |     | NULL    |                |
+| broker_id | bigint       | NO   | MUL | NULL    |                |
++-----------+--------------+------+-----+---------+----------------+
+4 rows in set (0.00 sec)
+
+mysql> select * from dbOpTest_egdetails limit 20;
++---------+---------------+----------+-----------+
+| id      | egName        | egStatus | broker_id |
++---------+---------------+----------+-----------+
+| 4840563 | AADHAR_EXP_01 |        1 |   4793180 |
+| 4840564 | AADHAR_EXP_01 |        1 |   4793181 |
+| 4840565 | AADHAR_EXP_01 |        1 |   4793182 |
+| 4840566 | AADHAR_EXP_01 |        1 |   4793183 |
+| 4840567 | AADHAR_EXP_01 |        1 |   4793184 |
+| 4840568 | AADHAR_EXP_01 |        1 |   4793185 |
+| 4840569 | AADHAR_EXP_01 |        1 |   4793186 |
+| 4840570 | AADHAR_EXP_02 |        1 |   4793187 |
+| 4840571 | AADHAR_EXP_02 |        1 |   4793188 |
+| 4840572 | AADHAR_EXP_02 |        1 |   4793189 |
+| 4840573 | AADHAR_EXP_02 |        1 |   4793190 |
+| 4840574 | AADHAR_EXP_02 |        1 |   4793191 |
+| 4840575 | AADHAR_EXP_03 |        1 |   4793192 |
+| 4840576 | AADHAR_EXP_03 |        1 |   4793193 |
+| 4840577 | AADHAR_EXP_03 |        1 |   4793194 |
+| 4840578 | AADHAR_EXP_03 |        1 |   4793195 |
+| 4840579 | AADHAR_EXP_03 |        1 |   4793196 |
+| 4840580 | AADHAR_EXP_04 |        1 |   4793197 |
+| 4840581 | AADHAR_EXP_04 |        1 |   4793198 |
+| 4840582 | AADHAR_EXP_04 |        1 |   4793199 |
++---------+---------------+----------+-----------+
+
+//SERVICE
+mysql> desc dbOpTest_servicedetails;
++---------------------+--------------+------+-----+---------+----------------+
+| Field               | Type         | Null | Key | Default | Extra          |
++---------------------+--------------+------+-----+---------+----------------+
+| id                  | bigint       | NO   | PRI | NULL    | auto_increment |
+| serviceName         | varchar(100) | NO   |     | NULL    |                |
+| serviceStatus       | tinyint(1)   | NO   |     | NULL    |                |
+| additionalInstances | varchar(100) | NO   |     | NULL    |                |
+| threadCapicity      | varchar(100) | NO   |     | NULL    |                |
+| threadInUse         | varchar(100) | NO   |     | NULL    |                |
+| timeout             | varchar(500) | NO   |     | NULL    |                |
+| eg_id               | bigint       | NO   | MUL | NULL    |                |
+| genericName         | varchar(100) | NO   |     | NULL    |                |
++---------------------+--------------+------+-----+---------+----------------+
+9 rows in set (0.00 sec)
