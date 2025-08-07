@@ -813,3 +813,153 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"\n❌ Error: {str(e)}")
             print("Please try rephrasing your question.\n")
+
+
+🚀 System Compliance Assistant
+==================================================
+Ask questions about your system compliance database in natural language.
+Examples:
+  • 'Show servers with high CPU usage'
+  • 'List all database servers'
+  • 'Do all servers have the same kernel version?'
+  • 'Are there any servers with firewall disabled?'
+  • 'Does every server have Deep Security running?'
+  • 'Count servers by role'
+
+Type 'exit' to quit.
+
+🔍 Enter your query: Do all servers have the same kernel version?
+
+🔄 Processing your query...
+🚀 Starting System Compliance Assistant...
+🔍 Processing your query...
+DEBUG - Original question: Do all servers have the same kernel version?
+DEBUG - Is yes/no question: True
+DEBUG - Attempt 1 generating SQL
+DEBUG - Raw SQL from LLM: 'Question: Do all servers have the same kernel version?\nSQLQuery: SELECT `kernelVersion` FROM `EISHome_compliance`;'
+DEBUG - Raw SQL input: 'Question: Do all servers have the same kernel version?\nSQLQuery: SELECT `kernelVersion` FROM `EISHome_compliance`;'
+DEBUG - Validating SQL: Question: Do all servers have the same kernel version?
+SQLQuery: SELECT `kernelVersion` FROM `EISHome_compliance`;
+DEBUG - Extracted SELECT statement: SELECT `kernelVersion` FROM `EISHome_compliance`
+DEBUG - Final cleaned SQL: SELECT `kernelVersion` FROM `EISHome_compliance`
+DEBUG - Validating SQL: SELECT `kernelVersion` FROM `EISHome_compliance`
+DEBUG - Final SQL: SELECT `kernelVersion` FROM `EISHome_compliance`;
+DEBUG - Query returned 165 rows
+✅ Query processing complete.
+
+📊 Results:
+**No** - Servers have different kernelVersion values: 5.14.0-570.25.1.el9_6.x86_64, 5.14.0-570.26.1.el9_6.x86_64, 5.14.0-570.21.1.el9_6.x86_64
+
+📋 **Supporting Details** (showing first 5 of 165 servers):
+kernelVersion
+----------------------------
+5.14.0-570.25.1.el9_6.x86_64
+5.14.0-570.25.1.el9_6.x86_64
+5.14.0-570.25.1.el9_6.x86_64
+5.14.0-570.25.1.el9_6.x86_64
+5.14.0-570.21.1.el9_6.x86_64
+... and 160 more servers.
+
+--------------------------------------------------
+🔍 Enter your query:  Do all servers have the same ace version ?
+
+🔄 Processing your query...
+🚀 Starting System Compliance Assistant...
+🔍 Processing your query...
+DEBUG - Original question: Do all servers have the same ace version ?
+DEBUG - Is yes/no question: True
+DEBUG - Attempt 1 generating SQL
+DEBUG - Raw SQL from LLM: 'Question: Do all servers have the same ace version ?\nSQLQuery: SELECT `aceVersion` FROM `EISHome_compliance`;'
+DEBUG - Raw SQL input: 'Question: Do all servers have the same ace version ?\nSQLQuery: SELECT `aceVersion` FROM `EISHome_compliance`;'
+DEBUG - Validating SQL: Question: Do all servers have the same ace version ?
+SQLQuery: SELECT `aceVersion` FROM `EISHome_compliance`;
+DEBUG - Extracted SELECT statement: SELECT `aceVersion` FROM `EISHome_compliance`
+DEBUG - Final cleaned SQL: SELECT `aceVersion` FROM `EISHome_compliance`
+DEBUG - Validating SQL: SELECT `aceVersion` FROM `EISHome_compliance`
+DEBUG - Final SQL: SELECT `aceVersion` FROM `EISHome_compliance`;
+DEBUG - Query returned 165 rows
+✅ Query processing complete.
+
+📊 Results:
+**Yes** - All 165 servers have the same aceVersion: 12.0.12.10
+
+📋 **Supporting Details** (showing first 5 of 165 servers):
+aceVersion
+----------
+12.0.12.10
+12.0.12.10
+12.0.12.10
+12.0.12.10
+12.0.12.10
+... and 160 more servers.
+
+--------------------------------------------------
+🔍 Enter your query: is there two firewall inactive ?
+
+🔄 Processing your query...
+🚀 Starting System Compliance Assistant...
+🔍 Processing your query...
+✅ Query processing complete.
+
+📊 Results:
+❌ Question blocked for security reasons.
+
+--------------------------------------------------
+🔍 Enter your query: how many firewall are inactive ?
+
+🔄 Processing your query...
+🚀 Starting System Compliance Assistant...
+🔍 Processing your query...
+✅ Query processing complete.
+
+📊 Results:
+❌ Question blocked for security reasons.
+
+--------------------------------------------------
+🔍 Enter your query: what is the kernal version of 10.177.40.101 ?
+
+🔄 Processing your query...
+🚀 Starting System Compliance Assistant...
+🔍 Processing your query...
+DEBUG - Original question: what is the kernal version of 10.177.40.101 ?
+DEBUG - Is yes/no question: True
+DEBUG - Attempt 1 generating SQL
+DEBUG - Raw SQL from LLM: "Question: What is the kernel version of 10.177.40.101?\nSQLQuery:\nSELECT `kernelVersion` \nFROM `EISHome_compliance` \nWHERE `ip_address` = '10.177.40.101';"
+DEBUG - Raw SQL input: "Question: What is the kernel version of 10.177.40.101?\nSQLQuery:\nSELECT `kernelVersion` \nFROM `EISHome_compliance` \nWHERE `ip_address` = '10.177.40.101';"
+DEBUG - Validating SQL: Question: What is the kernel version of 10.177.40.101?
+SQLQuery:
+SELECT `kernelVersion`
+FROM `EISHome_compliance`
+WHERE `ip_address` = '10.177.40.101';
+DEBUG - Extracted SELECT statement: SELECT `kernelVersion`
+FROM `EISHome_compliance`
+WHERE `ip_address` = '10.177.40.101'
+DEBUG - Final cleaned SQL: SELECT `kernelVersion`
+FROM `EISHome_compliance`
+WHERE `ip_address` = '10.177.40.101'
+DEBUG - Validating SQL: SELECT `kernelVersion`
+FROM `EISHome_compliance`
+WHERE `ip_address` = '10.177.40.101'
+DEBUG - Final SQL: SELECT `kernelVersion`
+FROM `EISHome_compliance`
+WHERE `ip_address` = '10.177.40.101';
+DEBUG - Query returned 1 rows
+✅ Query processing complete.
+
+📊 Results:
+The result is: 5.14.0-570.25.1.el9_6.x86_64
+
+--------------------------------------------------
+🔍 Enter your query: what is the firewall status of 10.177.40.101 ?
+
+🔄 Processing your query...
+🚀 Starting System Compliance Assistant...
+🔍 Processing your query...
+✅ Query processing complete.
+
+📊 Results:
+❌ Question blocked for security reasons.
+
+--------------------------------------------------
+🔍 Enter your query: exit
+👋 Goodbye!
