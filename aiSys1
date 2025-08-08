@@ -1,15 +1,19 @@
+import os
 import re
+import traceback
+import pymysql
 import sqlparse
 from sqlalchemy import create_engine, text
 from langchain_community.utilities import SQLDatabase
-from langchain_ollama.llms import Ollama
+from langchain_ollama import OllamaLLM
+from langchain.chains import create_sql_query_chain
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 
 # --- Configuration ---
 
-# [cite_start]Database connection details [cite: 5]
+# Database connection details
 DB_CONFIG = {
     "host": "localhost",
     "user": "root",
@@ -42,42 +46,52 @@ except Exception as e:
 # --- LLM and Prompt Setup ---
 
 # Initialize the Ollama LLM
-llm = Ollama(model=LLM_MODEL)
+llm = OllamaLLM(model=LLM_MODEL)
 
-# [cite_start]Detailed prompt template for generating SQL queries [cite: 1]
-# This prompt includes schema details, rules, and examples to guide the LLM.
+# --- CORRECTED AND IMPROVED PROMPT ---
+# This prompt is more detailed, includes the full schema, and provides better examples
+# to guide the LLM into generating more accurate and reliable queries.
 sql_prompt_template = """### Instructions
-You are an AI assistant that generates read-only MySQL queries for a database with the following schema.
-Your ONLY output should be the MySQL query. Do not add any explanation, commentary, or markdown formatting like ```sql.
+You are an expert AI assistant that generates read-only MySQL queries.
+Your ONLY output should be a single, valid MySQL query. Do not add any explanation, commentary, or markdown formatting like ```sql.
 
 ### Rules
-1.  [cite_start]**IMPORTANT**: You MUST only generate read-only `SELECT` queries. [cite: 4] Never generate `UPDATE`, `DELETE`, `INSERT`, `DROP`, or any other write-modifying queries.
+1.  **IMPORTANT**: You MUST only generate read-only `SELECT` queries. Never generate `UPDATE`, `DELETE`, `INSERT`, `DROP`, or any other write-modifying queries.
 2.  The table name is `EISHome_compliance`.
-3.  Use `LIKE` for string comparisons to allow for partial matches.
-4.  Analyze the user's question to infer the correct column and values for the `WHERE` clause.
+3.  Use `LIKE` with wildcards (e.g., `%value%`) for string comparisons to allow for partial matches.
+4.  For questions about whether all servers share a certain property (e.g., "do all servers have the same os version?"), you MUST generate a query that returns a single value: 'Yes' or 'No'. See the example below.
+5.  Analyze the user's question to infer the correct column and values for the `WHERE` clause.
+6.  The `upTime` column is a string like '2 weeks 6 days...'. You can only perform simple string searches on it (e.g., `WHERE upTime LIKE '%weeks%'`).
 
 ### Table Schema: `EISHome_compliance`
-- id (bigint): Unique identifier for each entry.
-- ip_address (varchar): IP address of the server (e.g., '192.168.1.10').
-- last_update (varchar): Last update timestamp (e.g., '2025-08-08 10:00:00').
-- upTime (varchar): Server uptime (e.g., '30 days').
-- server_role (varchar): Role of the server (e.g., 'Application Server', 'Database Server').
-- [cite_start]ram (int): RAM in MB (e.g., 16384 for 16GB). [cite: 15, 16]
-- [cite_start]cpuCore (int): Number of CPU cores (e.g., 8). [cite: 18]
-- [cite_start]osVersion (varchar): Operating system version (e.g., 'Red Hat Enterprise Linux 9.2'). [cite: 20]
-- [cite_start]kernelVersion (varchar): Linux kernel version (e.g., '5.14.0-284.11.1.el9_2.x86_64'). [cite: 37]
-- [cite_start]firewall (varchar): Firewall status (e.g., 'enabled', 'disabled'). [cite: 24]
-- [cite_start]rpmCount (int): Count of installed RPM packages. [cite: 25]
-- [cite_start]dsAgent (varchar): Deep Security agent status (e.g., 'active'). [cite: 27]
-- [cite_start]splunk (varchar): Splunk agent status (e.g., 'installed'). [cite: 28]
+- id (bigint): Unique identifier.
+- ip_address (varchar): Server IP address.
+- last_update (varchar): Last update timestamp.
+- upTime (varchar): Server uptime as a string (e.g., '3 weeks 6 days...').
+- server_role (varchar): Role of the server (e.g., 'DR LINUX').
+- ram (int): RAM in GB.
+- cpuCore (int): Number of CPU cores.
+- osVersion (varchar): Operating system version (e.g., '9.6(Plow)').
+- kernelVersion (varchar): Linux kernel version (e.g., '5.14.0-570.25.1.el9_6.x86_64').
+- aceVersion (varchar): ACE agent version.
+- mqVersion (varchar): MQ agent version.
+- firewall (varchar): Firewall status ('active', 'inactive').
+- rpmCount (int): Count of installed RPM packages.
+- dsAgent (varchar): Deep Security agent status.
+- splunk (varchar): Splunk agent status.
+- fileSystem (varchar): Filesystem status (e.g., 'OK', '/var (81%)').
 
 ### Query Examples
-- Question: "What is the OS version for the server with IP 10.0.2.5?"
-  Query: SELECT osVersion FROM EISHome_compliance WHERE ip_address = '10.0.2.5';
-- Question: "show me all servers with more than 8 cores"
-  [cite_start]Query: SELECT * FROM EISHome_compliance WHERE cpuCore > 8; [cite: 50]
-- Question: "are there any servers with firewall disabled?"
-  [cite_start]Query: SELECT id FROM EISHome_compliance WHERE firewall = 'disabled'; [cite: 55]
+- User Question: "Show me all the servers."
+  Query: SELECT * FROM EISHome_compliance;
+- User Question: "What is the OS version for the server with IP 10.122.41.10?"
+  Query: SELECT osVersion FROM EISHome_compliance WHERE ip_address = '10.122.41.10';
+- User Question: "show me all servers with more than 4 cores"
+  Query: SELECT * FROM EISHome_compliance WHERE cpuCore > 4;
+- User Question: "are there any servers with an inactive firewall?"
+  Query: SELECT ip_address, firewall FROM EISHome_compliance WHERE firewall = 'inactive';
+- User Question: "do all servers have the same ace version?"
+  Query: SELECT CASE WHEN COUNT(DISTINCT aceVersion) = 1 THEN 'Yes' ELSE 'No' END as result FROM EISHome_compliance;
 
 ### User Question
 {question}
@@ -91,7 +105,9 @@ SQL_PROMPT = PromptTemplate.from_template(sql_prompt_template)
 explanation_prompt_template = """### Instructions
 You are an AI assistant. A user asked a question, a database query was run, and you have the results.
 Your task is to provide a clear, human-like explanation of the data as an answer to the user's question.
-If the result is empty, inform the user that no matching records were found. Do not mention the database or the query.
+If the result is empty or `[]`, inform the user that no matching records were found.
+If the result is a single value like 'Yes' or 'No', state that clearly.
+Do not mention the database or the query that was run. Just answer the question based on the provided data.
 
 ### User's Question
 {question}
@@ -104,30 +120,23 @@ If the result is empty, inform the user that no matching records were found. Do 
 
 EXPLANATION_PROMPT = PromptTemplate.from_template(explanation_prompt_template)
 
-
 # --- Core Functions ---
 
 def is_readonly_query(sql_query: str) -> bool:
     """
-    [cite_start]Checks if the generated SQL query is a read-only SELECT statement. [cite: 4]
+    Checks if the generated SQL query is a read-only SELECT statement.
     """
-    parsed = sqlparse.parse(sql_query)
+    # Sanitize the query to handle potential LLM artifacts like newlines or comments
+    sanitized_query = sqlparse.format(sql_query, strip_comments=True).strip()
+    if not sanitized_query:
+        return False
+        
+    parsed = sqlparse.parse(sanitized_query)
     if not parsed:
         return False
+    
     # Check the first statement's type
     return parsed[0].get_type() == 'SELECT'
-
-def get_yes_no_answer(db_result: list) -> str:
-    """
-    Determines the 'Yes' or 'No' answer based on whether the query returned any data.
-    An empty result (e.g., []) means 'No', otherwise 'Yes'.
-    """
-    # The db.run() method returns a string representation of a list of tuples.
-    # An empty result looks like '[]' or an empty string.
-    if db_result and db_result != '[]':
-        return "Yes"
-    else:
-        return "No"
 
 # --- LangChain Chains ---
 
@@ -150,18 +159,16 @@ def main():
     print("\n--- AI Database Chatbot ---")
     print("Ask questions about your IT infrastructure. Type 'exit' to quit.")
 
-    # [cite_start]Words that trigger a "Yes/No" response [cite: 2]
-    yes_no_starters = ('is', 'are', 'do', 'does', 'did', 'has', 'have')
-
     while True:
         try:
             user_question = input("\n> ")
             if user_question.lower().strip() == 'exit':
                 print("Goodbye!")
                 break
-
-            # Determine response type based on the question's first word
-            is_yes_no_question = user_question.lower().strip().startswith(yes_no_starters)
+            
+            # --- SIMPLIFIED AND UNIFIED LOGIC FLOW ---
+            # The previous version had complex branching. This new version uses a single,
+            # more reliable path for all questions.
 
             # 1. Generate SQL Query
             print("🤖 Thinking...")
@@ -179,17 +186,15 @@ def main():
             # 3. Execute the Query
             db_result = db.run(generated_sql)
 
-            # [cite_start]4. Generate the Final Answer [cite: 3]
-            if is_yes_no_question:
-                answer = get_yes_no_answer(db_result)
-                print(f"\n🤖 Answer: {answer}")
-            else:
-                # For descriptive questions, use the explanation chain
-                explanation = explanation_chain.invoke({"question": user_question, "result": db_result})
-                print(f"\n🤖 Answer: {explanation}")
+            # 4. Generate the Final Answer using the Explanation Chain
+            # This single chain can now handle all cases: empty results, 'Yes'/'No' answers,
+            # and full data tables, providing a user-friendly response.
+            explanation = explanation_chain.invoke({"question": user_question, "result": db_result})
+            print(f"\n🤖 Answer: {explanation}")
 
         except Exception as e:
-            print(f"An unexpected error occurred: {e}")
+            print(f"\nAn unexpected error occurred: {e}")
+            traceback.print_exc()
             print("Please try rephrasing your question.")
 
 if __name__ == "__main__":
