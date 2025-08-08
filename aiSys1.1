@@ -1,0 +1,175 @@
+import re
+import sqlparse
+from sqlalchemy import create_engine, text
+from langchain_community.utilities import SQLDatabase
+from langchain_ollama.llms import Ollama
+from langchain_core.prompts import PromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
+
+# --- Configuration ---
+DB_CONFIG = {
+    "host": "localhost",
+    "user": "root",
+    "password": "root123",
+    "database": "EIS_n"
+}
+
+LLM_MODEL = "mistral:7b-instruct-q4_K_M"
+
+# --- Database Setup ---
+def get_db_connection():
+    uri = f"mysql+pymysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}/{DB_CONFIG['database']}"
+    return create_engine(uri)
+
+try:
+    db_engine = get_db_connection()
+    with db_engine.connect() as connection:
+        print("✅ Database connection successful.")
+    db = SQLDatabase(engine=db_engine)
+except Exception as e:
+    print("❌ Database connection failed.")
+    print(f"Error: {e}")
+    exit()
+
+# --- LLM and Prompt Setup ---
+llm = Ollama(model=LLM_MODEL)
+
+sql_prompt_template = """### Instructions
+You are an AI assistant that generates read-only MySQL queries for a database with the following schema.
+Your ONLY output should be the MySQL query. Do not add explanations or markdown formatting.
+
+### Rules
+1. Only generate SELECT queries. Never use UPDATE, DELETE, INSERT, DROP, TRUNCATE, or other write operations.
+2. Table: EISHome_compliance
+3. Use LIKE for string comparisons when appropriate.
+
+### Schema:
+- id (bigint)
+- ip_address (varchar)
+- last_update (varchar)
+- upTime (varchar)
+- server_role (varchar)
+- ram (int)
+- cpuCore (int)
+- osVersion (varchar)
+- kernelVersion (varchar)
+- firewall (varchar)
+- rpmCount (int)
+- dsAgent (varchar)
+- splunk (varchar)
+
+### Examples:
+- Q: "What is the OS version for IP 10.0.2.5?"
+  A: SELECT osVersion FROM EISHome_compliance WHERE ip_address = '10.0.2.5';
+- Q: "Show all servers with more than 8 cores"
+  A: SELECT * FROM EISHome_compliance WHERE cpuCore > 8;
+
+### User Question
+{question}
+
+### MySQL Query
+"""
+SQL_PROMPT = PromptTemplate.from_template(sql_prompt_template)
+
+explanation_prompt_template = """### Instructions
+Given the question, query result, and context, provide a clear human-readable answer.
+If result is empty, say no matching records found.
+
+### Question
+{question}
+
+### Result
+{result}
+
+### Answer
+"""
+EXPLANATION_PROMPT = PromptTemplate.from_template(explanation_prompt_template)
+
+# --- SAFETY CHECK ---
+def is_readonly_query(sql_query: str) -> bool:
+    """
+    Ensures the query is strictly a single read-only SELECT statement.
+    Blocks dangerous SELECT features like INTO OUTFILE, LOAD_FILE, etc.
+    """
+    # Parse the SQL
+    parsed = sqlparse.parse(sql_query)
+    if not parsed:
+        return False
+
+    # Must be exactly one statement
+    if len(parsed) != 1:
+        return False
+
+    statement = parsed[0]
+
+    # Must be a SELECT
+    if statement.get_type() != 'SELECT':
+        return False
+
+    # Lowercase for keyword scanning
+    q_lower = sql_query.lower()
+
+    # Block dangerous read-only operations
+    dangerous_keywords = [
+        "into outfile", "into dumpfile", "load_file",
+        "sleep(", "benchmark(", "shutdown", "union select", "--", ";"
+    ]
+    if any(kw in q_lower for kw in dangerous_keywords):
+        return False
+
+    return True
+
+def get_yes_no_answer(db_result: list) -> str:
+    if db_result and db_result != '[]':
+        return "Yes"
+    else:
+        return "No"
+
+# --- LangChain Chains ---
+sql_generation_chain = (
+    RunnablePassthrough.assign(schema=lambda _: db.get_table_info())
+    | SQL_PROMPT
+    | llm
+    | StrOutputParser()
+)
+
+explanation_chain = EXPLANATION_PROMPT | llm | StrOutputParser()
+
+# --- Main Logic ---
+def main():
+    print("\n--- AI Database Chatbot ---")
+    print("Ask about your IT infrastructure. Type 'exit' to quit.")
+    yes_no_starters = ('is', 'are', 'do', 'does', 'did', 'has', 'have')
+
+    while True:
+        try:
+            user_question = input("\n> ")
+            if user_question.lower().strip() == 'exit':
+                print("Goodbye!")
+                break
+
+            is_yes_no_question = user_question.lower().strip().startswith(yes_no_starters)
+
+            print("🤖 Thinking...")
+            generated_sql = sql_generation_chain.invoke({"question": user_question})
+            generated_sql = generated_sql.strip().replace("```sql", "").replace("```", "").strip()
+            print(f"🔍 Generated SQL: {generated_sql}")
+
+            if not is_readonly_query(generated_sql):
+                print("⚠️ Error: Query rejected for safety reasons.")
+                continue
+
+            db_result = db.run(generated_sql)
+
+            if is_yes_no_question:
+                print(f"\n🤖 Answer: {get_yes_no_answer(db_result)}")
+            else:
+                explanation = explanation_chain.invoke({"question": user_question, "result": db_result})
+                print(f"\n🤖 Answer: {explanation}")
+
+        except Exception as e:
+            print(f"Error: {e}")
+
+if __name__ == "__main__":
+    main()
